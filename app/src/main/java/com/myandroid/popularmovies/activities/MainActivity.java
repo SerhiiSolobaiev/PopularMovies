@@ -12,8 +12,6 @@ import com.myandroid.popularmovies.R;
 
 public class MainActivity extends AppCompatActivity {
 
-    Fragment mContent;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,13 +45,5 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
-    }
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-
-        //Save the fragment's instance
-        //getSupportFragmentManager().putFragment(outState, "mContent", mContent);
-
     }
 }

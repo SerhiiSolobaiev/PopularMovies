@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +22,7 @@ import android.widget.TextView;
 
 import com.myandroid.popularmovies.R;
 import com.myandroid.popularmovies.Utility;
+import com.myandroid.popularmovies.activities.DetailActivity;
 import com.myandroid.popularmovies.adapters.ListTrailerAdapter;
 import com.myandroid.popularmovies.entities.TrailerItem;
 
@@ -41,11 +43,12 @@ import java.util.ArrayList;
 public class TrailersFragment extends Fragment{
 
     private final String LOG_TAG = TrailersFragment.class.getSimpleName();
-    private int idMovie;
 
     TextView tvTrailers;
     ListView listViewTrailers;
     ListTrailerAdapter adapter;
+
+    private int idMovie;
 
     public TrailersFragment() {
     }
@@ -53,12 +56,11 @@ public class TrailersFragment extends Fragment{
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
         Intent intent = getActivity().getIntent();
         if (intent != null) {
-            idMovie = intent.getIntExtra("id", 0);
+            idMovie = intent.getIntExtra("idMovie", 0);
         }
-        Log.v(LOG_TAG,"idMovie = " + idMovie);
-
         View rootView = inflater.inflate(R.layout.fragment_trailers, container,false);
 
         tvTrailers = (TextView)rootView.findViewById(R.id.textView_Trailers);
@@ -74,6 +76,7 @@ public class TrailersFragment extends Fragment{
             (new GetTrailers()).execute(idMovie);
         }
     }
+
 
     private boolean isNetworkConnected() {
         ConnectivityManager cm = (ConnectivityManager) getActivity()

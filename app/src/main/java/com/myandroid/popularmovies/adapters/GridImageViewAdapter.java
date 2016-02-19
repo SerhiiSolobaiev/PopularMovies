@@ -8,7 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 
-import com.myandroid.popularmovies.entities.ImageItem;
+import com.myandroid.popularmovies.entities.MovieItem;
 import com.myandroid.popularmovies.R;
 
 import java.util.ArrayList;
@@ -18,12 +18,13 @@ public class GridImageViewAdapter extends ArrayAdapter {
     private Context context;
     private int layoutResourceId;
     private ArrayList data = new ArrayList();
+    //ImageLoader imageLoader=new ImageLoader(context);
 
-    public GridImageViewAdapter(Context context, int resource, ArrayList data) {
-        super(context, resource, data);
+    public GridImageViewAdapter(Context context, int resource, ArrayList newItems) {
+        super(context, resource, newItems);
         this.layoutResourceId = resource;
         this.context = context;
-        this.data = data;
+        this.data = newItems;
     }
 
     @Override
@@ -39,8 +40,9 @@ public class GridImageViewAdapter extends ArrayAdapter {
             image = (ImageView) row.getTag();
         }
 
-        ImageItem item = (ImageItem) data.get(position);
+        MovieItem item = (MovieItem) data.get(position);
         image.setImageBitmap(item.getImage());
         return row;
     }
+
 }

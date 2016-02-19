@@ -30,6 +30,10 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".activities.MainActivity" />
         </activity>
+        <provider
+            android:authorities="com.myandroid.popularmovies.Movies"
+            android:name=".FavMoviesProvider" />
+
     </application>
 
 </manifest>

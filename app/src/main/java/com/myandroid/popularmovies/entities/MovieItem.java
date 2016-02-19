@@ -2,23 +2,26 @@ package com.myandroid.popularmovies.entities;
 
 import android.graphics.Bitmap;
 
-public class ImageItem {
+public class MovieItem {
+
     private int id;
     private Bitmap image;
     private String title;
-    private String vote_average;
+    private String voteAverage;
     private String overview;
-    private String release_date;
+    private String releaseDate;
+    private int isFavorite;
 
-    public ImageItem(int id, Bitmap image, String title, String vote_average,
-                     String overview, String release_date) {
+    public MovieItem(int id, Bitmap image, String title, String voteAverage,
+                     String overview, String releaseDate, int isFavorite) {
         super();
         this.id = id;
         this.image = image;
         this.title = title;
-        this.vote_average = vote_average;
+        this.voteAverage = voteAverage;
         this.overview = overview;
-        this.release_date = release_date;
+        this.releaseDate = releaseDate;
+        this.isFavorite = isFavorite;
     }
 
     public int getId() {
@@ -30,11 +33,11 @@ public class ImageItem {
     }
 
     public String getVote_average() {
-        return vote_average;
+        return voteAverage;
     }
 
     public void setVote_average(String vote_average) {
-        this.vote_average = vote_average;
+        this.voteAverage = vote_average;
     }
 
     public String getOverview() {
@@ -46,11 +49,11 @@ public class ImageItem {
     }
 
     public String getRelease_date() {
-        return release_date;
+        return releaseDate;
     }
 
     public void setRelease_date(String release_date) {
-        this.release_date = release_date;
+        this.releaseDate = release_date;
     }
 
     public Bitmap getImage() {
@@ -67,5 +70,13 @@ public class ImageItem {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public int getIsFavorite() {
+        return isFavorite;
+    }
+
+    public void setIsFavorite(int isFavorite) {
+        this.isFavorite = isFavorite;
     }
 }
