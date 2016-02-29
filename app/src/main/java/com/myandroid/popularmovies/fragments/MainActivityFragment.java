@@ -41,7 +41,7 @@ import java.util.ArrayList;
 public class MainActivityFragment extends Fragment {
 
     private final String LOG_TAG = MainActivityFragment.class.getSimpleName();
-    public static final String API_KEY = "be4ec1e43fd93463f31b377680769c29";
+    public static final String API_KEY = "YOUR_API_KEY";
 
     private static final String APP_PREFERENCES = "preferences";
     private static final String APP_PREFERENCES_SORT_METHOD = "sort_method";
