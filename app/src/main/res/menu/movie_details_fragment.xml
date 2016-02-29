@@ -2,7 +2,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/add_to_favorites"
-        android:title="@string/add_to_favorites"
+        android:id="@+id/search_in_internet"
+        android:title="@string/search_in_internet"
         app:showAsAction="never" />
 </menu>

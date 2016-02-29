@@ -21,6 +21,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ProgressBar;
@@ -36,16 +37,8 @@ import com.myandroid.popularmovies.R;
 import com.myandroid.popularmovies.activities.DetailActivity;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class MainActivityFragment extends Fragment {
-
-    //TODO
-    /*1.
-    * 4. Make possibility to add movie to favorite list (and than show this movies)
-    * 5. Something more...
-    * */
-
 
     private final String LOG_TAG = MainActivityFragment.class.getSimpleName();
     public static final String API_KEY = "be4ec1e43fd93463f31b377680769c29";
@@ -69,7 +62,6 @@ public class MainActivityFragment extends Fragment {
     private int current_page = 1;
     private boolean loadMore = false;
 
-
     public MainActivityFragment() {
     }
 
@@ -78,6 +70,7 @@ public class MainActivityFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
         sharedpreferences = getActivity().getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE);
+        arrayMovies = new ArrayList<>();
     }
 
     @Override
@@ -111,7 +104,7 @@ public class MainActivityFragment extends Fragment {
         gridView = (GridView) rootView.findViewById(android.R.id.list);
         mProgressBar = (ProgressBar) rootView.findViewById(R.id.progressBar);
         mySwipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swiperefresh);
-        textViewNoResults = (TextView)rootView.findViewById(R.id.textView_noResults);
+        textViewNoResults = (TextView) rootView.findViewById(R.id.textView_noResults);
 
         gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -145,15 +138,14 @@ public class MainActivityFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        readMoviesFromBD(sharedpreferences
-                .getString(APP_PREFERENCES_SORT_METHOD, "popularity.desc"));
+        readMoviesFromBD(sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD,
+                "popularity.desc"));
     }
 
     @Override
     public void onResume() {
         super.onResume();
         if (state != null) {
-            Log.v(LOG_TAG, "state != null");
             gridView.onRestoreInstanceState(state);
         }
     }
@@ -174,12 +166,12 @@ public class MainActivityFragment extends Fragment {
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount,
                                  int totalItemCount) {
                 int lastInScreen = firstVisibleItem + visibleItemCount;
-                if ((lastInScreen == totalItemCount) && loadMore) {
+                if ((lastInScreen == totalItemCount) && loadMore && isNetworkConnected()) {
                     loadMore = false;
                     Log.v(LOG_TAG, "reached the end of the gridView");
                     runBackgroundThread(
-                            sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD, "popularity.desc"),
-                            current_page);
+                            sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD,
+                                    "popularity.desc"), current_page);
                 }
             }
         });
@@ -190,58 +182,65 @@ public class MainActivityFragment extends Fragment {
                 new SwipeRefreshLayout.OnRefreshListener() {
                     @Override
                     public void onRefresh() {
-                        Log.i(LOG_TAG, "onRefresh called from SwipeRefreshLayout");
+                        current_page = 1; //refresh all
                         runBackgroundThread(
                                 sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD,
-                                        "popularity.desc"), 1);
+                                        "popularity.desc"), current_page);
                     }
                 }
         );
     }
 
     private void runBackgroundThread(String sortMethod, int page) {
-        if (isNetworkConnected()){
+        if (isNetworkConnected()) {
             if (!sharedpreferences.getString(
-                        APP_PREFERENCES_SORT_METHOD, "popularity.desc").equals("isFavorite")) {
+                    APP_PREFERENCES_SORT_METHOD, "popularity.desc").equals("isFavorite")) {
 
                 Log.v(LOG_TAG, "Downloading starts ");
                 Log.v(LOG_TAG, "sortMethod=" + sortMethod + ", page=" + page);
 
                 String[] params = {sortMethod, String.valueOf(page)};
 
-                if (page == 1)
+                if (page == 1) {
                     deleteOldMoviesFromBD(arrayMovies);
+                }
 
-                GetMoviesTask task = new GetMoviesTask(getActivity(), new FetchMoviesTaskCompleteListener());
-                task.execute(params);
-                current_page++;
+                //start AsyncTask
+                (new GetMoviesTask(getActivity(), new FetchMoviesTaskCompleteListener()))
+                        .execute(params);
 
                 textViewNoResults.setVisibility(View.GONE);
                 if (!mySwipeRefreshLayout.isRefreshing()) {
                     mProgressBar.setVisibility(View.VISIBLE);
                 }
             }
+            else
+                mySwipeRefreshLayout.setRefreshing(false);
 
         } else {
             Toast.makeText(getActivity(), "Please, check your Internet connection",
                     Toast.LENGTH_LONG).show();
             mySwipeRefreshLayout.setRefreshing(false);
+
+            //read movies that already saved in BD
+            readMoviesFromBD(sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD,
+                    "popularity.desc"));
+
         }
     }
 
     private void readMoviesFromBD(String params) {
-
-        Toast.makeText(getActivity(), "readMoviesFromBD", Toast.LENGTH_LONG).show();
         String where = FavMoviesProvider.IS_FAVORITE + " = 0 OR "
                 + FavMoviesProvider.IS_FAVORITE + " = 1";
-        if (params.equals("isFavorite")){
+        if (params.equals("isFavorite")) {
             where = FavMoviesProvider.IS_FAVORITE + " = 1";
         }
+
+        Log.v(LOG_TAG, "\nreadMoviesFromBD(), where = " + where);
 
         Cursor c = getActivity().getContentResolver().query(
                 FavMoviesProvider.MOVIE_CONTENT_URI, null, where, null, null);
 
-        arrayMovies = new ArrayList<>();
         if (c.moveToFirst()) {
             do {
                 MovieItem item = new MovieItem(
@@ -253,24 +252,32 @@ public class MainActivityFragment extends Fragment {
                         c.getString(c.getColumnIndex(FavMoviesProvider.RELEASE_DATE)),
                         c.getInt(c.getColumnIndex(FavMoviesProvider.IS_FAVORITE)));
                 arrayMovies.add(item);
+                Log.v(LOG_TAG, "item.getTitle() = " + item.getTitle());
+                Log.v(LOG_TAG, "item.getIsFavorite() = " + item.getIsFavorite());
             } while (c.moveToNext());
         }
         c.close();
+
         gridAdapter = new GridImageViewAdapter(getActivity(), R.layout.grid_item_movie, arrayMovies);
         gridView.setAdapter(gridAdapter);
         loadMore = true;
-        if (arrayMovies.size()==0){
+        if (arrayMovies.size() == 0) {
             textViewNoResults.setVisibility(View.VISIBLE);
         }
     }
 
     private void deleteOldMoviesFromBD(ArrayList<MovieItem> arrayMovies) {
-        for (int i = 0; i < arrayMovies.size(); i++) {
-            if (arrayMovies.get(i).getIsFavorite() == 0) {
-                Uri uri = ContentUris.withAppendedId(FavMoviesProvider.MOVIE_CONTENT_URI,
-                        arrayMovies.get(i).getId());
-                int deletedMovieId = getActivity().getContentResolver().delete(uri, null, null);
-                Log.v(LOG_TAG, "deletedMovieId = " + deletedMovieId);
+        if (arrayMovies.size() != 0) {
+            for (int i = 0; i < arrayMovies.size(); i++) {
+                if (arrayMovies.get(i).getIsFavorite() == 0) {
+                    Uri uri = ContentUris.withAppendedId(FavMoviesProvider.MOVIE_CONTENT_URI,
+                            arrayMovies.get(i).getId());
+                    getActivity().getContentResolver().delete(uri, null, null);
+                    Log.v(LOG_TAG, "deletedMovieId = " + arrayMovies.get(i).getId());
+                } else {
+                    Log.v(LOG_TAG, "favorite movie with id = "
+                            + arrayMovies.get(i).getId() + " not deleted");
+                }
             }
         }
     }
@@ -280,39 +287,44 @@ public class MainActivityFragment extends Fragment {
         editor = sharedpreferences.edit();
         current_page = 1; //for creating new query
         final CharSequence[] items = {getResources().getString(R.string.sort_most_popular),
-                getResources().getString(R.string.sort_highest_rated),getResources().getString(R.string.sort_favorite)};
+                getResources().getString(R.string.sort_highest_rated),
+                getResources().getString(R.string.sort_favorite)};
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
         builder.setTitle(R.string.sort_order);
         builder.setSingleChoiceItems(items,
                 sharedpreferences.getInt(APP_PREFERENCES_POSITION_IN_MENU, 0), new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int item) {
+                        loadMore = false;
+                        gridAdapter.clear();
                         switch (item) {
                             case 0:
                                 editor.putInt(APP_PREFERENCES_POSITION_IN_MENU, 0);
                                 editor.putString(APP_PREFERENCES_SORT_METHOD, "popularity.desc");
                                 editor.apply();
                                 runBackgroundThread(
-                                        sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD, "popularity.desc"),
-                                        current_page);
+                                        sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD,
+                                                "popularity.desc"), current_page);
                                 break;
                             case 1:
                                 editor.putInt(APP_PREFERENCES_POSITION_IN_MENU, 1);
-                                editor.putString(APP_PREFERENCES_SORT_METHOD, "vote_average.desc");
+                                editor.putString(APP_PREFERENCES_SORT_METHOD, "vote_count.desc");
                                 editor.apply();
                                 runBackgroundThread(
-                                        sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD, "popularity.desc"),
-                                        current_page);
+                                        sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD,
+                                                "popularity.desc"), current_page);
                                 break;
                             case 2:
                                 editor.putInt(APP_PREFERENCES_POSITION_IN_MENU, 2);
                                 editor.putString(APP_PREFERENCES_SORT_METHOD, "isFavorite");
                                 editor.apply();
-                                readMoviesFromBD(sharedpreferences.getString(APP_PREFERENCES_SORT_METHOD, "popularity.desc"));
+                                readMoviesFromBD(sharedpreferences.getString(
+                                        APP_PREFERENCES_SORT_METHOD, "popularity.desc"));
                                 break;
                         }
                         levelDialog.dismiss();
                     }
                 });
+
         levelDialog = builder.create();
         levelDialog.show();
     }
@@ -332,6 +344,7 @@ public class MainActivityFragment extends Fragment {
             mySwipeRefreshLayout.setRefreshing(false);
 
             int currentPosition = gridView.getFirstVisiblePosition();
+
             if (current_page == 1) {
                 gridAdapter = new GridImageViewAdapter(getActivity(), R.layout.grid_item_movie,
                         movieItems);
@@ -340,7 +353,10 @@ public class MainActivityFragment extends Fragment {
             }
             gridView.setSelection(currentPosition + 1);
             gridView.setAdapter(gridAdapter);
+
+            //for possibility download more movies
             loadMore = true;
+            current_page++;
         }
     }
 }

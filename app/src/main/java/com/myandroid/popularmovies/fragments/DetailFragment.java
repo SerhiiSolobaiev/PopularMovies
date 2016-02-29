@@ -1,5 +1,6 @@
 package com.myandroid.popularmovies.fragments;
 
+import android.app.Notification;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -71,9 +72,8 @@ public class DetailFragment extends Fragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.add_to_favorites) {
-            Toast.makeText(getActivity(), "Must be function that adds this movie to favorites",
-                    Toast.LENGTH_SHORT).show();
+        if (id == R.id.search_in_internet) {
+            createLinkOnSite();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -154,14 +154,22 @@ public class DetailFragment extends Fragment {
     private void updateMovieToFavorite(boolean add) {
         ContentValues cv = new ContentValues();
         if (add) {
-            Toast.makeText(getActivity(), "add to favorites", Toast.LENGTH_SHORT).show();
-            cv.put(FavMoviesProvider.IS_FAVORITE, "1");
+            //Toast.makeText(getActivity(), "add to favorites", Toast.LENGTH_SHORT).show();
+            cv.put(FavMoviesProvider.IS_FAVORITE, 1);
         } else {
-            cv.put(FavMoviesProvider.IS_FAVORITE, "0");
-            Toast.makeText(getActivity(), "remove from favorites", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getActivity(), "remove from favorites", Toast.LENGTH_SHORT).show();
+            cv.put(FavMoviesProvider.IS_FAVORITE, 0);
         }
         Uri uri = ContentUris.withAppendedId(FavMoviesProvider.MOVIE_CONTENT_URI, idMovie);
         getActivity().getContentResolver().update(uri, cv, null, null);
         Log.d(LOG_TAG, "updated to favorite movie with id = " + idMovie);
+    }
+
+    private void createLinkOnSite() {
+        String url = "http://fs.to/search.aspx?search=";
+        String movieTitle = getActivity().getIntent().getStringExtra("title");
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(url + movieTitle));
+        startActivity(intent);
     }
 }

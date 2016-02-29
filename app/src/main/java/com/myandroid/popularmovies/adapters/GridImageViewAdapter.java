@@ -2,11 +2,13 @@ package com.myandroid.popularmovies.adapters;
 
 import android.app.Activity;
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.myandroid.popularmovies.entities.MovieItem;
 import com.myandroid.popularmovies.R;
@@ -17,10 +19,13 @@ public class GridImageViewAdapter extends ArrayAdapter {
 
     private Context context;
     private int layoutResourceId;
-    private ArrayList data = new ArrayList();
-    //ImageLoader imageLoader=new ImageLoader(context);
+    private ArrayList<MovieItem> data = new ArrayList<>();
 
-    public GridImageViewAdapter(Context context, int resource, ArrayList newItems) {
+    private static final int TYPE_ITEM_NORMAL = 0;
+    private static final int TYPE_ITEM_FAVORITE = 1;
+
+
+    public GridImageViewAdapter(Context context, int resource, ArrayList<MovieItem> newItems) {
         super(context, resource, newItems);
         this.layoutResourceId = resource;
         this.context = context;
@@ -28,21 +33,54 @@ public class GridImageViewAdapter extends ArrayAdapter {
     }
 
     @Override
+    public int getViewTypeCount() {
+        return 2;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return (data.get(position).getIsFavorite() == 1) ? TYPE_ITEM_FAVORITE : TYPE_ITEM_NORMAL;
+    }
+
+    @Override
+    public void clear() {
+        data.clear();
+        this.notifyDataSetChanged();
+        super.clear();
+    }
+
+    @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         View row = convertView;
-        ImageView image;
+        int type = getItemViewType(position);
+        ViewHolder holder;
+
         if (row == null) {
             LayoutInflater inflater = ((Activity) context).getLayoutInflater();
             row = inflater.inflate(layoutResourceId, parent, false);
-            image = (ImageView) row.findViewById(R.id.image);
-            row.setTag(image);
+            holder = new ViewHolder();
+
+            holder.image = (ImageView) row.findViewById(R.id.image);
+            holder.markAsFavorite = (ImageView) row.findViewById(R.id.favorite);
+
+            if (type == 1) {
+                holder.markAsFavorite.setVisibility(View.VISIBLE);
+            }
+
+            row.setTag(holder);
         } else {
-            image = (ImageView) row.getTag();
+            holder = (ViewHolder) row.getTag();
         }
 
-        MovieItem item = (MovieItem) data.get(position);
-        image.setImageBitmap(item.getImage());
+        MovieItem item = data.get(position);
+        if (data.get(position).getImage() != null) {
+            holder.image.setImageBitmap(item.getImage());
+        }
         return row;
     }
 
+    static class ViewHolder {
+        ImageView image;
+        ImageView markAsFavorite;
+    }
 }

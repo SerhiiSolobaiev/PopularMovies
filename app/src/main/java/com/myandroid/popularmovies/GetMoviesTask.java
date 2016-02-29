@@ -1,7 +1,9 @@
 package com.myandroid.popularmovies;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -28,9 +30,10 @@ public class GetMoviesTask extends AsyncTask<String[], Void, ArrayList<MovieItem
 
     private final String LOG_TAG = GetMoviesTask.class.getSimpleName();
 
-    ArrayList<MovieItem> arrayImages;
+    private ArrayList<MovieItem> arrayImages;
     private Context context;
     private AsyncTaskCompleteListener listener;
+    private ArrayList<Integer> favoriteMoviesId;
 
     public GetMoviesTask(Context context, AsyncTaskCompleteListener listener) {
         this.context = context;
@@ -59,6 +62,7 @@ public class GetMoviesTask extends AsyncTask<String[], Void, ArrayList<MovieItem
             JSONArray moviesArray = objectMovies.getJSONArray(RESULTS_LIST);
 
             arrayImages = new ArrayList<>();
+            favoriteMoviesId = readFavoriteMoviesFromBD();
             for (int i = 0; i < moviesArray.length(); i++) {
                 JSONObject movie = moviesArray.getJSONObject(i);
 
@@ -68,12 +72,13 @@ public class GetMoviesTask extends AsyncTask<String[], Void, ArrayList<MovieItem
                 String vote_count = movie.getString(NAME_VOTE_AVERAGE);
                 String overview = movie.getString(NAME_OVERVIEW);
                 String release_date = movie.getString(NAME_RELEASE_DATE);
+                int isFavorite = (favoriteMoviesId.contains(id)) ? 1 : 0;
 
                 Log.v(LOG_TAG, i + " movieName = " + movieName);
                 Bitmap bitmap = makeBitmapFromName(imageName);
 
                 MovieItem item = new MovieItem(id, bitmap, movieName, vote_count, overview,
-                        release_date,0);
+                        release_date,isFavorite);
 
                 writeMoviesToBD(item);
 
@@ -98,20 +103,42 @@ public class GetMoviesTask extends AsyncTask<String[], Void, ArrayList<MovieItem
     }
 
     private void writeMoviesToBD(MovieItem item) {
-
         ContentValues values = new ContentValues();
-
         values.put(FavMoviesProvider.ID_MOVIE, item.getId());
         values.put(FavMoviesProvider.TITLE, item.getTitle());
         values.put(FavMoviesProvider.IMAGE, Utility.getBytes(item.getImage()));
         values.put(FavMoviesProvider.OVERVIEW, item.getOverview());
         values.put(FavMoviesProvider.VOTE_AVERAGE, item.getVote_average());
         values.put(FavMoviesProvider.RELEASE_DATE, item.getRelease_date());
-        values.put(FavMoviesProvider.IS_FAVORITE, 0);
 
-        Uri uri = context.getContentResolver().insert(
-                FavMoviesProvider.MOVIE_CONTENT_URI, values);
-        Log.d(LOG_TAG, "insert, result Uri = " + uri.toString());
+        if (!favoriteMoviesId.contains(item.getId())) {
+            values.put(FavMoviesProvider.IS_FAVORITE, 0);
+            Uri uri = context.getContentResolver().insert(
+                    FavMoviesProvider.MOVIE_CONTENT_URI, values);
+            Log.d(LOG_TAG, "insert, result Uri = " + uri.toString());
+        }
+        else{
+            values.put(FavMoviesProvider.IS_FAVORITE, 1);
+            Uri uri = ContentUris.withAppendedId(FavMoviesProvider.MOVIE_CONTENT_URI, item.getId());
+            context.getContentResolver().update(uri, values, null, null);
+            Log.d(LOG_TAG, "favorite movie with id = " + item.getId());
+        }
+    }
+
+    private ArrayList<Integer> readFavoriteMoviesFromBD(){
+        favoriteMoviesId = new ArrayList<>();
+        String where = FavMoviesProvider.IS_FAVORITE + " = 1";
+        Cursor c = context.getContentResolver().query(
+                FavMoviesProvider.MOVIE_CONTENT_URI, new String[]{FavMoviesProvider.ID_MOVIE},
+                where, null, null);
+
+        if (c.moveToFirst()) {
+            do {
+                favoriteMoviesId.add(c.getInt(c.getColumnIndex(FavMoviesProvider.ID_MOVIE)));
+            } while (c.moveToNext());
+        }
+        c.close();
+        return favoriteMoviesId;
     }
 
     @Override
@@ -175,7 +202,6 @@ public class GetMoviesTask extends AsyncTask<String[], Void, ArrayList<MovieItem
 
     @Override
     protected void onPostExecute(ArrayList<MovieItem> moviesArray) {
-
         super.onPostExecute(moviesArray);
         listener.onTaskComplete(moviesArray);
     }
